@@ -67,7 +67,7 @@ export default function Header() {
           {/* Right - Actions */}
           <div className="ml-auto flex items-center gap-5 z-10">
             <button className="hidden sm:flex w-11 h-11 items-center justify-center border border-black/20 rounded-2xl text-[1vw] font-medium hover:bg-black hover:text-white transition-colors">
-              SUI
+              ENG
             </button>
 
             <a

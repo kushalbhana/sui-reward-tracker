@@ -28,7 +28,7 @@ export default function RewardsWidget() {
               : 'text-gray-500 hover:text-gray-800 hover:bg-black/5'
               }`}
           >
-            Validator
+            Validator <span className="text-[10px] ml-1 bg-[#4c32ff] text-white px-1 rounded-full">Paid</span>
           </button>
         </div>
 
@@ -39,31 +39,10 @@ export default function RewardsWidget() {
                 <label className="text-sm font-semibold text-gray-800">Delegator Address</label>
                 <input
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0x8hfd, 0xJb56"
                   className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-800">Validator Address</label>
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-800">Epoch</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 50"
-                  className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'validator' && (
-            <div className="flex flex-col space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-gray-800">Validator Address</label>
                 <input
@@ -90,6 +69,31 @@ export default function RewardsWidget() {
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'validator' && (
+            <div className="flex flex-col space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-800">Validator Address</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="text-sm font-semibold text-gray-800">Validator Actions</label>
+                <ul className="list-disc list-inside text-gray-700 space-y-1 mt-1">
+                  <li>Index all historic delegators</li>
+                  <li>Generate Reports</li>
+                  <li>Track historical rewards</li>
+                  <li>Pre Index data for fast response time</li>
+                  <li>Track validator daily and set alerts</li>
+                </ul>
+              </div>
+
             </div>
           )}
         </div>

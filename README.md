@@ -1,159 +1,77 @@
-# Turborepo starter
+# Sui Rewards Tracker
 
-This Turborepo starter is maintained by the Turborepo core team.
+**Sui Rewards Tracker** is a platform where you can check delegator rewards for epochs on the Sui blockchain. You can easily browse all the validators, their delegators, and the associated rewards they receive using this platform.
 
-## Using this example
+## Features
 
-Run the following command:
+- **Validator Overview**: Check all active validators on the Sui network.
+- **Delegator Analytics**: View detailed lists of delegators for each validator and their corresponding rewards.
+- **Epoch Tracking**: Access and track delegator rewards specifically tied to various epochs on Sui.
 
-```sh
-npx create-turbo@latest
-```
+## Project Structure
 
-## What's inside?
+This project is organized as a monorepo via [Turborepo](https://turbo.build/repo/docs) and uses **npm** as its package manager.
 
-This Turborepo includes the following packages/apps:
+### Apps
 
-### Apps and Packages
+- `apps/web`: The main web application (built with [Next.js](https://nextjs.org/)).
+- `apps/docs`: Documentation site for the platform (built with [Next.js](https://nextjs.org/)).
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Packages
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- `packages/ui`: A stub React component library shared by both `web` and `docs` applications.
+- `packages/eslint-config`: Shared `eslint` configurations (`eslint-config-next` and `eslint-config-prettier`).
+- `packages/typescript-config`: Shared `tsconfig.json` configurations used throughout the monorepo.
 
-### Utilities
+## Prerequisites
 
-This Turborepo has some additional tools already setup for you:
+Ensure you have the following installed to run this project:
+- [Node.js](https://nodejs.org/) (v18 or newer recommended based on engine specifications)
+- `npm` (v10.9.4 or newer recommended as the main package manager)
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## Getting Started
 
-### Build
+Follow these steps to get the platform up and running on your local machine:
 
-To build all apps and packages, run the following command:
+1. **Install Dependencies:**
+   Run the following command in the root directory to install all necessary packages across the apps:
+   ```sh
+   npm install
+   ```
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+2. **Run the Development Server:**
+   To spin up all applications (`web` and `docs`) simultaneously, run:
+   ```sh
+   npm run dev
+   ```
+   Or explicitly using turbo:
+   ```sh
+   npx turbo run dev
+   ```
 
-```sh
-cd my-turborepo
-turbo build
-```
+   _The web app will typically be accessible at `http://localhost:3000`._
 
-Without global `turbo`, use your package manager:
+## Build and Code Quality Commands
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+This monorepo comes with preconfigured scripts mapped down to turbo:
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+- **Build all apps and packages**:
+  ```sh
+  npm run build
+  ```
+- **Run linting across the monorepo**:
+  ```sh
+  npm run lint
+  ```
+- **Check TypeScript types**:
+  ```sh
+  npm run check-types
+  ```
+- **Format code using Prettier**:
+  ```sh
+  npm run format
+  ```
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Remote Caching (Turborepo)
 
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines. By default, it caches locally. To enable Remote Caching from the root, you can optionally run `npx turbo login` and then link your Turborepo by running `npx turbo link`.
