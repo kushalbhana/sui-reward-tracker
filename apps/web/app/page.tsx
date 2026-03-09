@@ -1,102 +1,95 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+"use client";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+import { motion } from 'framer-motion';
+import { AnimatedText } from './components/AnimatedText';
+import RewardsWidget from './components/RewardsWidget';
+import { SiAutodeskmaya } from "react-icons/si";
+import { PiCodesandboxLogoBold } from "react-icons/pi";
+import { PiBehanceLogoFill } from "react-icons/pi";
+import { RxModulzLogo } from "react-icons/rx";
+import { BiLogoMastodon } from "react-icons/bi";
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
-  return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
+const clientLogos = [
+  { name: 'Awwwards', icon: <SiAutodeskmaya size={36} /> },
+  { name: 'CSS Design', icon: <PiCodesandboxLogoBold size={36} /> },
+  { name: 'FWA', icon: <PiBehanceLogoFill size={36} /> },
+  { name: 'Webby', icon: <RxModulzLogo size={36} /> },
+  { name: 'Lovie', icon: <BiLogoMastodon size={36} /> },
+];
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <section className="min-h-screen pt-36 lg:pt-48 pb-20 px-6 lg:px-12 bg-[#F5F5F5]">
+      <div className="max-w-full lg:mx-28">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-12 items-center lg:mt-10">
+          
+          {/* Left Column - Text Content */}
+          <div className="order-1 lg:order-1 flex justify-center items-center flex-col">
+            {/* Label */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xs font-medium tracking-[0.2em] uppercase text-gray-500 mb-5 "
+            >
+              Sui Network Explorer
+            </motion.p>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
+            {/* Main Headline */}
+            <h1 className="text-4xl text-[15vw] md:text-[6.25vw] lg:text-[6.25vw] xl:text-[6.25vw] font-medium leading-[1.0] mb-8 font-display">
+              <AnimatedText text="Track your" delay={0.3} className='ml-10 lg:ml-0' />
+              <br />
+              <AnimatedText text="rewards" delay={0.5} className='lg:-ml-20'/>
+              <br />
+              <AnimatedText text="Instantly" delay={0.7} className='ml-10 lg:ml-4' />
+            </h1>
+
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.9 }}
+              className="text-xs font-medium tracking-[0.15em] uppercase text-gray-400 mb-12"
+            >
+              Real-time insights across every epoch
+            </motion.p>
+
+            {/* Client Logos */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.1 }}
+              className="flex items-center gap-8 md:gap-8 lg:gap-16 w-full justify-center lg:justify-start"
+            >
+              {clientLogos.map((logo, index) => (
+                <motion.div
+                  key={logo.name}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 1.2 + index * 0.1 }}
+                  className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 grayscale opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <span className="text-xl md:text-2xl font-bold">{logo.icon}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Right Column - Project Showcase Replaced by RewardsWidget */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            className="order-2 lg:order-2 flex justify-center lg:justify-end lg:translate-x-12 xl:translate-x-20"
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+            {/* The form sits on the right, pushing to the right slightly as requested */}
+            <div className="w-full max-w-[500px] xl:max-w-[560px] mx-auto lg:mx-0 lg:ml-auto">
+              <RewardsWidget />
+            </div>
+          </motion.div>
+
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.dev →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </section>
   );
 }
