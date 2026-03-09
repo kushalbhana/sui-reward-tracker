@@ -56,7 +56,7 @@ export default function RewardsWidget() {
                   <label className="text-sm font-semibold text-gray-800">Start Epoch</label>
                   <input
                     type="number"
-                    placeholder="e.g. 40"
+                    placeholder="e.g. 1020"
                     className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
@@ -64,7 +64,7 @@ export default function RewardsWidget() {
                   <label className="text-sm font-semibold text-gray-800">End Epoch</label>
                   <input
                     type="number"
-                    placeholder="e.g. 50"
+                    placeholder="e.g. 1050"
                     className="w-full rounded-xl px-4 py-3 bg-white/90 border border-black/10 shadow-inner text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
@@ -85,7 +85,7 @@ export default function RewardsWidget() {
 
               <div className="space-y-2 pt-2">
                 <label className="text-sm font-semibold text-gray-800">Validator Actions</label>
-                <ul className="list-disc list-inside text-gray-700 space-y-1 mt-1">
+                <ul className="list-disc list-inside text-gray-500 space-y-1 mt-1">
                   <li>Index all historic delegators</li>
                   <li>Generate Reports</li>
                   <li>Track historical rewards</li>

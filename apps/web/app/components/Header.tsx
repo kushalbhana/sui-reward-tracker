@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { IoRocketOutline } from "react-icons/io5";
+import { SiSui } from "react-icons/si";
+
+
 
 const navLinks = [
   { label: 'report', href: '##report' },
@@ -43,7 +45,7 @@ export default function Header() {
             className="flex items-center gap-3 z-10 hover:opacity-80 transition-opacity"
           >
             <div className="w-12 h-12 bg-[#4c32ff] rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-xl"><IoRocketOutline /></span>
+              <span className="text-white font-bold text-xl"><SiSui /></span>
             </div>
             <span className="text-xl lg:text-[2.5vw] font-semibold hidden sm:block">
               SuiRewards
