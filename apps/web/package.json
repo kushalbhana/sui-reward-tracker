@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@mysten/sui.js": "^0.54.1",
+    "@mysten/wallet-standard": "^0.20.1",
     "@repo/db": "*",
     "@repo/rpc": "*",
     "@repo/schema": "*",
     "@repo/ui": "*",
+    "@solana/web3.js": "^1.98.4",
     "framer-motion": "^12.35.2",
     "lucide-react": "^0.577.0",
     "next": "16.1.5",

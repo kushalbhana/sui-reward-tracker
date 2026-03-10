@@ -6,6 +6,7 @@ import { Menu, X, LogOut, Github } from 'lucide-react';
 import { SiSui, SiGoogle } from "react-icons/si";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
+import DonateButton from "./DonateButton";
 
 
 
@@ -92,9 +93,7 @@ export default function Header() {
 
             {/* Right - Actions */}
             <div className="ml-auto flex items-center gap-5 z-10">
-              <button className="hidden sm:flex p-2 items-center justify-center border border-[#4c32ff] text-[#4c32ff] hover:cursor-pointer rounded-2xl text-[1vw] font-medium hover:bg-[#4c32ff] hover:text-white transition-colors">
-                Donate
-              </button>
+              <DonateButton />
 
               {status === "loading" ? (
                 <div className="hidden md:flex items-center gap-2 px-6 py-3 bg-transparent text-[#4c32ff] font-medium animate-pulse">
