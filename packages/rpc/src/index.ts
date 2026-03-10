@@ -80,7 +80,13 @@ export async function rpcCall<T = any>(
  * Reusable RPC Client class bound to a specific URL.
  */
 export class RpcClient {
-  constructor(public url: string, public defaultOptions: RpcClientOptions = {}) {}
+  url: string;
+  defaultOptions: RpcClientOptions;
+
+  constructor(url: string, defaultOptions: RpcClientOptions = {}) {
+    this.url = url;
+    this.defaultOptions = defaultOptions;
+  }
 
   /**
    * Performs an RPC call to the configured URL

@@ -22,7 +22,7 @@ export default function Home() {
     <section className="min-h-screen pt-36 lg:pt-48 pb-20 px-6 lg:px-12 bg-[#F5F5F5]">
       <div className="max-w-full lg:mx-28">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-12 items-center lg:mt-10">
-          
+
           {/* Left Column - Text Content */}
           <div className="order-1 lg:order-1 flex justify-center items-center flex-col">
             {/* Label */}
@@ -36,10 +36,10 @@ export default function Home() {
             </motion.p>
 
             {/* Main Headline */}
-            <h1 className="text-4xl text-[15vw] md:text-[6.25vw] lg:text-[6.25vw] xl:text-[6.25vw] font-medium leading-[1.0] mb-8 font-display">
+            <h1 className="text-4xl text-[15vw] md:text-[6.25vw] lg:text-[6.25vw] xl:text-[6.25vw] font-medium leading-none mb-8 font-display">
               <AnimatedText text="Track your" delay={0.3} className='ml-10 lg:ml-0' />
               <br />
-              <AnimatedText text="rewards" delay={0.5} className='lg:-ml-20'/>
+              <AnimatedText text="rewards" delay={0.5} className='lg:-ml-20' />
               <br />
               <AnimatedText text="Instantly" delay={0.7} className='ml-10 lg:ml-4' />
             </h1>
