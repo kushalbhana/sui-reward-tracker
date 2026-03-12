@@ -1,0 +1,84 @@
+services:
+  # ------------------------------------
+  # MongoDB
+  # ------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: sui-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: sui_rewards
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------
+  # Web (Next.js — port 3000)
+  # ------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    container_name: sui-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/sui_rewards?authSource=admin
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_ID=${GOOGLE_ID}
+      - GOOGLE_SECRET=${GOOGLE_SECRET}
+      - GITHUB_ID=${GITHUB_ID}
+      - GITHUB_SECRET=${GITHUB_SECRET}
+      - NEXT_PUBLIC_SUI_WALLET=${NEXT_PUBLIC_SUI_WALLET}
+      - NEXT_PUBLIC_SOLANA_WALLET=${NEXT_PUBLIC_SOLANA_WALLET}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # ------------------------------------
+  # Docs (Next.js — port 3001)
+  # ------------------------------------
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: docs
+    container_name: sui-docs
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # ------------------------------------
+  # Indexer (Node.js long-running service)
+  # ------------------------------------
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: indexer
+    container_name: sui-indexer
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/sui_rewards?authSource=admin
+      - RPC_URLS=${RPC_URLS:-https://fullnode.mainnet.sui.io:443}
+      - PAGE_SIZE=${PAGE_SIZE:-50}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:

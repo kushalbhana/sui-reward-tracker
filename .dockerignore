@@ -1,0 +1,12 @@
+node_modules
+.next
+.turbo
+dist
+.git
+.gitignore
+*.md
+.env
+.env.*
+tmp-webapp
+.DS_Store
+coverage
