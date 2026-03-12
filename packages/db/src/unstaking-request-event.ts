@@ -1,28 +1,8 @@
 import mongoose from "mongoose";
 import { AutoIncrement } from "./plugins";
+import type { IUnstakingRequestEvent } from "@repo/types";
 
-export interface IUnstakingRequestEvent extends mongoose.Document {
-  bcs: string;
-  cursorId: {
-    txDigest: string;
-    eventSeq: string;
-  };
-  sortedId?: number; // Auto-incremented
-  packageId: string;
-  parsedJson: {
-    poolId: string;
-    principalAmount: string;
-    rewardAmount: string;
-    stakeActivationEpoch: string;
-    stakerAddress: string;
-    unstakingEpoch: number;
-    validatorAddress: string;
-  };
-  sender: string;
-  timestampMs: string;
-  transactionModule: string;
-  type: string;
-}
+export type { IUnstakingRequestEvent };
 
 const UnstakingRequestEventSchema = new mongoose.Schema(
   {
@@ -61,4 +41,4 @@ UnstakingRequestEventSchema.index({ "cursorId.eventSeq": 1, "cursorId.txDigest":
 // @ts-ignore
 UnstakingRequestEventSchema.plugin(AutoIncrement, { inc_field: "sortedId", id: "unstaking_events_seq" });
 
-export const UnstakingRequestEvent = (mongoose.models.UnstakingRequestEvent as mongoose.Model<IUnstakingRequestEvent>) || mongoose.model<IUnstakingRequestEvent>("UnstakingRequestEvent", UnstakingRequestEventSchema);
+export const UnstakingRequestEvent = (mongoose.models.UnstakingRequestEvent as mongoose.Model<IUnstakingRequestEvent & mongoose.Document>) || mongoose.model<IUnstakingRequestEvent & mongoose.Document>("UnstakingRequestEvent", UnstakingRequestEventSchema);

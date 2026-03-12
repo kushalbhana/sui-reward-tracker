@@ -16,6 +16,7 @@ COPY apps/indexer/package.json ./apps/indexer/package.json
 COPY packages/db/package.json ./packages/db/package.json
 COPY packages/rpc/package.json ./packages/rpc/package.json
 COPY packages/schema/package.json ./packages/schema/package.json
+COPY packages/types/package.json ./packages/types/package.json
 COPY packages/ui/package.json ./packages/ui/package.json
 COPY packages/eslint-config/package.json ./packages/eslint-config/package.json
 COPY packages/typescript-config/package.json ./packages/typescript-config/package.json

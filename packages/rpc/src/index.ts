@@ -1,25 +1,6 @@
-// Fetch options can be passed natively
-export interface RpcClientOptions extends RequestInit {
-  timeout?: number;
-}
+import type { RpcClientOptions, RpcPayload, RpcResponse } from "@repo/types";
 
-export interface RpcPayload {
-  jsonrpc: string;
-  id: number | string;
-  method: string;
-  params: any[];
-}
-
-export interface RpcResponse<T = any> {
-  jsonrpc: string;
-  id: number | string;
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
+export type { RpcClientOptions, RpcPayload, RpcResponse };
 
 /**
  * Executes a single RPC call given a URL and a payload.

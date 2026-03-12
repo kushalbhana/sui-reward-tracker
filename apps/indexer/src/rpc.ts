@@ -1,19 +1,7 @@
 import { RpcClient } from "@repo/rpc";
+import type { SuiEventPage } from "@repo/types";
 
-export interface SuiEventPage {
-  data: Array<{
-    id: { txDigest: string; eventSeq: string };
-    packageId: string;
-    transactionModule: string;
-    sender: string;
-    type: string;
-    parsedJson: any;
-    bcs: string;
-    timestampMs: string;
-  }>;
-  nextCursor: { txDigest: string; eventSeq: string } | null;
-  hasNextPage: boolean;
-}
+export type { SuiEventPage };
 
 export class SuiRpcWrapper {
   private urls: string[];

@@ -1,26 +1,8 @@
 import mongoose from "mongoose";
 import { AutoIncrement } from "./plugins";
+import type { IStakingRequestEvent } from "@repo/types";
 
-export interface IStakingRequestEvent extends mongoose.Document {
-  bcs: string;
-  cursorId: {
-    eventSeq: string;
-    txDigest: string;
-  };
-  sortedId?: number; // Auto-incremented
-  packageId: string;
-  parsedJson: {
-    amount: string;
-    epoch: number;
-    poolId: string;
-    stakerAddress: string;
-    validatorAddress: string;
-  };
-  sender: string;
-  timestampMs: string;
-  transactionModule: string;
-  type: string;
-}
+export type { IStakingRequestEvent };
 
 const StakingRequestEventSchema = new mongoose.Schema(
   {
@@ -57,4 +39,4 @@ StakingRequestEventSchema.index({ "cursorId.eventSeq": 1, "cursorId.txDigest": 1
 // @ts-ignore
 StakingRequestEventSchema.plugin(AutoIncrement, { inc_field: "sortedId", id: "sui_events_seq" });
 
-export const StakingRequestEvent = (mongoose.models.StakingRequestEvent as mongoose.Model<IStakingRequestEvent>) || mongoose.model<IStakingRequestEvent>("StakingRequestEvent", StakingRequestEventSchema);
+export const StakingRequestEvent = (mongoose.models.StakingRequestEvent as mongoose.Model<IStakingRequestEvent & mongoose.Document>) || mongoose.model<IStakingRequestEvent & mongoose.Document>("StakingRequestEvent", StakingRequestEventSchema);

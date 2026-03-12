@@ -1,35 +1,8 @@
 import mongoose from "mongoose";
 import { AutoIncrement } from "./plugins";
+import type { IValidatorEpochInfoEvent } from "@repo/types";
 
-export interface IValidatorEpochInfoEvent extends mongoose.Document {
-  bcs: string;
-  cursorId: {
-    txDigest: string;
-    eventSeq: string;
-  };
-  sortedId?: number;
-  packageId: string;
-  parsedJson: {
-    epoch: string;
-    validator_address: string;
-    reference_gas_survey_quote: string;
-    stake: string;
-    voting_power: string;
-    commission_rate: string;
-    pool_staking_reward: string;
-    storage_fund_staking_reward: string;
-    pool_token_exchange_rate: {
-      sui_amount: string;
-      pool_token_amount: string;
-    };
-    tallying_rule_reporters: string[];
-    tallying_rule_global_score: string;
-  };
-  sender: string;
-  timestampMs: string;
-  transactionModule: string;
-  type: string;
-}
+export type { IValidatorEpochInfoEvent };
 
 const ValidatorEpochInfoEventSchema = new mongoose.Schema(
   {
@@ -77,4 +50,4 @@ ValidatorEpochInfoEventSchema.index({ "parsedJson.epoch": 1, "parsedJson.validat
 // @ts-ignore
 ValidatorEpochInfoEventSchema.plugin(AutoIncrement, { inc_field: "sortedId", id: "validator_epoch_events_seq" });
 
-export const ValidatorEpochInfoEvent = (mongoose.models.ValidatorEpochInfoEvent as mongoose.Model<IValidatorEpochInfoEvent>) || mongoose.model<IValidatorEpochInfoEvent>("ValidatorEpochInfoEvent", ValidatorEpochInfoEventSchema);
+export const ValidatorEpochInfoEvent = (mongoose.models.ValidatorEpochInfoEvent as mongoose.Model<IValidatorEpochInfoEvent & mongoose.Document>) || mongoose.model<IValidatorEpochInfoEvent & mongoose.Document>("ValidatorEpochInfoEvent", ValidatorEpochInfoEventSchema);
