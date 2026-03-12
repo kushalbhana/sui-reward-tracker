@@ -1,4 +1,4 @@
-import { StakingRequestEvent, UnstakingRequestEvent, connectToDatabase } from "@repo/db";
+import { StakingRequestEvent, UnstakingRequestEvent, ValidatorEpochInfoEvent, connectToDatabase } from "@repo/db";
 import { SuiRpcWrapper } from "./rpc.js";
 import cron from "node-cron";
 import dotenv from "dotenv";
@@ -16,7 +16,8 @@ const RPC_URLS = process.env.RPC_URLS
 
 const TARGET_EVENTS = [
   "0x3::validator::StakingRequestEvent",
-  "0x3::validator::UnstakingRequestEvent"
+  "0x3::validator::UnstakingRequestEvent",
+  "0x3::validator_set::ValidatorEpochInfoEventV2"
 ];
 
 class SuiIndexer {
@@ -38,16 +39,22 @@ class SuiIndexer {
       Model = StakingRequestEvent;
     } else if (eventType === "0x3::validator::UnstakingRequestEvent") {
       Model = UnstakingRequestEvent;
+    } else if (eventType === "0x3::validator_set::ValidatorEpochInfoEventV2") {
+      Model = ValidatorEpochInfoEvent;
     } else {
       console.warn(`[Indexer] Unknown event type: ${eventType}. Skipping.`);
       return;
     }
 
-    // Determine the latest cursor for this event type from the database
-    // Sort in descending order based on the auto-increment DB sortId or transaction digest timestamp to find the latest
-    // A more reliable way is tracking the actual txDigest/eventSeq locally.
-    // For now, to synchronize seamlessly, we'll start from scratch/null cursor if none is found.
-    const latestEvent = await Model.findOne().sort({ sortedId: -1 }).select("cursorId");
+    // Load the last stored cursor to resume indexing — crash if this DB read fails
+    let latestEvent: any;
+    try {
+      latestEvent = await Model.findOne().sort({ sortedId: -1 }).select("cursorId");
+    } catch (dbErr: any) {
+      console.error(`[Indexer] FATAL: Database read failed while loading cursor for ${eventType}. Crashing to prevent data loss.`);
+      console.error(dbErr);
+      process.exit(1);
+    }
 
     let cursor = null;
     if (latestEvent && latestEvent.cursorId) {
@@ -64,55 +71,54 @@ class SuiIndexer {
     while (hasNextPage) {
       console.log(`[Indexer] Fetching page of size ${PAGE_SIZE}... (cursor: ${cursor ? cursor.txDigest : 'null'})`);
 
-      try {
-        const page = await this.rpc.queryEvents(eventType, cursor, PAGE_SIZE);
+      // Fetch events via RPC (retries/failover handled inside SuiRpcWrapper)
+      const page = await this.rpc.queryEvents(eventType, cursor, PAGE_SIZE);
 
-        if (page.data && page.data.length > 0) {
-          // Prepare for Mongoose bulk upsert
-          const bulkOps = page.data.map((event) => {
-            return {
-              updateOne: {
-                filter: {
-                  "cursorId.txDigest": event.id.txDigest,
-                  "cursorId.eventSeq": event.id.eventSeq
-                },
-                update: {
-                  $set: {
-                    cursorId: {
-                      txDigest: event.id.txDigest,
-                      eventSeq: event.id.eventSeq
-                    },
-                    packageId: event.packageId,
-                    transactionModule: event.transactionModule,
-                    sender: event.sender,
-                    type: event.type,
-                    parsedJson: event.parsedJson,
-                    bcs: event.bcs,
-                    timestampMs: event.timestampMs
-                  }
-                },
-                upsert: true
-              }
-            };
-          });
+      if (page.data && page.data.length > 0) {
+        // Prepare for Mongoose bulk upsert
+        const bulkOps = page.data.map((event) => {
+          return {
+            updateOne: {
+              filter: {
+                "cursorId.txDigest": event.id.txDigest,
+                "cursorId.eventSeq": event.id.eventSeq
+              },
+              update: {
+                $set: {
+                  cursorId: {
+                    txDigest: event.id.txDigest,
+                    eventSeq: event.id.eventSeq
+                  },
+                  packageId: event.packageId,
+                  transactionModule: event.transactionModule,
+                  sender: event.sender,
+                  type: event.type,
+                  parsedJson: event.parsedJson,
+                  bcs: event.bcs,
+                  timestampMs: event.timestampMs
+                }
+              },
+              upsert: true
+            }
+          };
+        });
 
-          // Execute bulk write
+        // Execute bulk write — if this fails, crash immediately to prevent data loss
+        try {
           const result = await Model.bulkWrite(bulkOps);
-
           totalProcessed += page.data.length;
           console.log(`[Indexer] Batch inserted/updated: ${result.upsertedCount + result.modifiedCount} documents (Total Processed: ${totalProcessed})`);
-        } else {
-          console.log(`[Indexer] No new events found on this page.`);
+        } catch (dbErr: any) {
+          console.error(`[Indexer] FATAL: Database write failed for ${eventType}. Crashing to prevent data loss.`);
+          console.error(dbErr);
+          process.exit(1);
         }
-
-        hasNextPage = page.hasNextPage;
-        cursor = page.nextCursor;
-
-      } catch (err: any) {
-        console.error(`[Indexer] Critical failure while paginating events. Aborting run for ${eventType}.`);
-        console.error(err);
-        break; // Drop out of pagination sequence naturally on critical error instead of crashing app
+      } else {
+        console.log(`[Indexer] No new events found on this page.`);
       }
+
+      hasNextPage = page.hasNextPage;
+      cursor = page.nextCursor;
     }
 
     console.log(`[Indexer] Completed indexing for ${eventType}. Total events processed: ${totalProcessed}`);
@@ -129,16 +135,17 @@ class SuiIndexer {
     try {
       await connectToDatabase();
       console.log(`[Indexer] Connected to MongoDB database successfully.`);
-
-      for (const eventType of TARGET_EVENTS) {
-        await this.indexEventType(eventType);
-      }
-
-      console.log(`[Indexer] Run completed successfully.`);
-
     } catch (err: any) {
-      console.error(`[Indexer] Error during run:`, err);
+      console.error(`[Indexer] FATAL: Failed to connect to database. Crashing to prevent data loss.`);
+      console.error(err);
+      process.exit(1);
     }
+
+    for (const eventType of TARGET_EVENTS) {
+      await this.indexEventType(eventType);
+    }
+
+    console.log(`[Indexer] Run completed successfully.`);
   }
 }
 
