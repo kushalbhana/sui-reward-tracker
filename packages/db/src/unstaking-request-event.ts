@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { AutoIncrement } from "./plugins";
 import type { IUnstakingRequestEvent } from "@repo/types";
 
 export type { IUnstakingRequestEvent };
 
 const UnstakingRequestEventSchema = new mongoose.Schema(
   {
+    sortedId: { type: Number, index: true },
     bcs: { required: true, type: String },
     cursorId: {
       txDigest: { index: true, required: true, type: String },
@@ -38,7 +38,6 @@ const UnstakingRequestEventSchema = new mongoose.Schema(
 
 UnstakingRequestEventSchema.index({ "cursorId.eventSeq": 1, "cursorId.txDigest": 1 }, { unique: true });
 
-// @ts-ignore
-UnstakingRequestEventSchema.plugin(AutoIncrement, { inc_field: "sortedId", id: "unstaking_events_seq" });
+
 
 export const UnstakingRequestEvent = (mongoose.models.UnstakingRequestEvent as mongoose.Model<IUnstakingRequestEvent & mongoose.Document>) || mongoose.model<IUnstakingRequestEvent & mongoose.Document>("UnstakingRequestEvent", UnstakingRequestEventSchema);

@@ -16,6 +16,37 @@ const TARGET_EVENTS = [
   "0x3::validator_set::ValidatorEpochInfoEventV2"
 ];
 
+/**
+ * Transforms parsedJson from the raw RPC response (snake_case) into the
+ * camelCase shape expected by the Mongoose schemas.
+ */
+function transformParsedJson(eventType: string, raw: any): any {
+  if (eventType === "0x3::validator::StakingRequestEvent") {
+    return {
+      amount: raw.amount,
+      epoch: raw.epoch,
+      poolId: raw.pool_id,
+      stakerAddress: raw.staker_address,
+      validatorAddress: raw.validator_address,
+    };
+  }
+
+  if (eventType === "0x3::validator::UnstakingRequestEvent") {
+    return {
+      poolId: raw.pool_id,
+      principalAmount: raw.principal_amount,
+      rewardAmount: raw.reward_amount,
+      stakeActivationEpoch: raw.stake_activation_epoch,
+      stakerAddress: raw.staker_address,
+      unstakingEpoch: raw.unstaking_epoch,
+      validatorAddress: raw.validator_address,
+    };
+  }
+
+  // ValidatorEpochInfoEventV2 — RPC already uses snake_case matching the schema
+  return raw;
+}
+
 class SuiIndexer {
   private rpc: SuiRpcWrapper;
 
@@ -42,15 +73,21 @@ class SuiIndexer {
       return;
     }
 
-    // Load the last stored cursor to resume indexing — crash if this DB read fails
+    // Load the document with the highest sortedId to:
+    //   (a) seed the in-memory ID counter
+    //   (b) use its cursorId to resume from where we left off
     let latestEvent: any;
     try {
-      latestEvent = await Model.findOne().sort({ sortedId: -1 }).select("cursorId");
+      latestEvent = await Model.findOne().sort({ sortedId: -1 }).select("cursorId sortedId");
     } catch (dbErr: any) {
       console.error(`[Indexer] FATAL: Database read failed while loading cursor for ${eventType}. Crashing to prevent data loss.`);
       console.error(dbErr);
       process.exit(1);
     }
+
+    // In-memory counter — always larger than anything already in the DB
+    let nextSortedId: number = (latestEvent?.sortedId ?? 0) + 1;
+    console.log(`[Indexer] Starting sortedId counter at: ${nextSortedId}`);
 
     let cursor = null;
     if (latestEvent && latestEvent.cursorId) {
@@ -71,8 +108,12 @@ class SuiIndexer {
       const page = await this.rpc.queryEvents(eventType, cursor, PAGE_SIZE);
 
       if (page.data && page.data.length > 0) {
-        // Prepare for Mongoose bulk upsert
+        // Assign a sequential sortedId to each event in this page BEFORE writing.
+        // $setOnInsert ensures the id is written only on first insert and never
+        // overwritten on subsequent upserts — preventing gaps or reassignment.
+        // The unique compound index on cursorId ensures no duplicate documents.
         const bulkOps = page.data.map((event) => {
+          const assignedId = nextSortedId++;
           return {
             updateOne: {
               filter: {
@@ -89,9 +130,14 @@ class SuiIndexer {
                   transactionModule: event.transactionModule,
                   sender: event.sender,
                   type: event.type,
-                  parsedJson: event.parsedJson,
+                  parsedJson: transformParsedJson(eventType, event.parsedJson),
                   bcs: event.bcs,
                   timestampMs: event.timestampMs
+                },
+                // Only set sortedId once when the document is first created.
+                // On subsequent upserts (already-existing docs), this is a no-op.
+                $setOnInsert: {
+                  sortedId: assignedId
                 }
               },
               upsert: true
