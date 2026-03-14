@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
-import { connectToDatabase, User } from "@repo/db";
+import { connectToDatabase, User, Subscription } from "@repo/db";
 
 const handler = NextAuth({
   providers: [
@@ -49,17 +49,34 @@ const handler = NextAuth({
         return false;
       }
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.isNewUser = (user as any).isNewUser;
       }
+
+      // Refresh subscription status on every token refresh
+      if (token.id) {
+        try {
+          await connectToDatabase();
+          const activeSubscription = await Subscription.findOne({
+            userId: token.id,
+            status: "active",
+            expiresAt: { $gt: new Date() },
+          });
+          token.plan = activeSubscription ? "pro" : "free";
+        } catch {
+          token.plan = token.plan || "free";
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).isNewUser = token.isNewUser;
+        (session.user as any).plan = token.plan || "free";
       }
       return session;
     },
@@ -74,3 +91,4 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
+

@@ -8,3 +8,5 @@ export { UnstakingRequestEvent } from "./unstaking-request-event";
 export type { IUnstakingRequestEvent } from "./unstaking-request-event";
 export { ValidatorEpochInfoEvent } from "./validator-epoch-info-event";
 export type { IValidatorEpochInfoEvent } from "./validator-epoch-info-event";
+export { Subscription } from "./subscription";
+export type { ISubscription } from "./subscription";

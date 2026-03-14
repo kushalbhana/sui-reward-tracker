@@ -12,6 +12,7 @@ import DonateButton from "./DonateButton";
 
 const navLinks = [
   { label: 'report', href: '##report' },
+  { label: 'pricing', href: '#pricing' },
   { label: 'validators', href: '#validators' },
   { label: 'about us', href: '#about' },
 ];

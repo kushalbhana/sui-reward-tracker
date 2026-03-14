@@ -1,11 +1,7 @@
+import "dotenv/config";
 import { StakingRequestEvent, UnstakingRequestEvent, ValidatorEpochInfoEvent, connectToDatabase } from "@repo/db";
 import { SuiRpcWrapper } from "./rpc.js";
 import cron from "node-cron";
-import dotenv from "dotenv";
-import path from "path";
-
-// Load environment variables dynamically
-dotenv.config({ path: path.resolve(import.meta.dirname, "../../.env") });
 
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 50;
 

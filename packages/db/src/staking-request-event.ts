@@ -10,6 +10,7 @@ const StakingRequestEventSchema = new mongoose.Schema(
     cursorId: {
       eventSeq: { type: String, required: true },
       txDigest: { index: true, type: String, required: true },
+      unique: true
     },
     packageId: { index: true, required: true, type: String },
     parsedJson: {
