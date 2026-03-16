@@ -1,24 +1,28 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Wallet, AlertCircle } from 'lucide-react';
-import { SiSui, SiSolana } from "react-icons/si";
+import { SiSui } from "react-icons/si";
 import { toast } from "sonner";
 import { Connection, PublicKey, SystemProgram, Transaction, clusterApiUrl } from '@solana/web3.js';
 import { getWallets, Wallet as StandardWallet } from '@mysten/wallet-standard';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
+import bs58 from 'bs58';
 
-const DESTINATION_SOL = new PublicKey(process.env.NEXT_PUBLIC_SOLANA_WALLET!); // Replace with actual SOL wallet addressing later if provided
-const DESTINATION_SUI = process.env.NEXT_PUBLIC_SUI_WALLET; // Replace with actual SUI wallet addressing later if provided
+const DESTINATION_SOL = new PublicKey(process.env.NEXT_PUBLIC_SOLANA_WALLET!);
+const DESTINATION_SUI = process.env.NEXT_PUBLIC_SUI_WALLET!;
+
+const IS_TESTNET    = process.env.NEXT_PUBLIC_PAYMENT_KIT_NETWORK === 'testnet';
+const SOLANA_CLUSTER = IS_TESTNET ? 'devnet' : 'mainnet-beta';
+const SOLANA_CHAIN   = IS_TESTNET ? 'solana:devnet' : 'solana:mainnet';
 
 type CryptoOption = 'SUI' | 'SOL' | 'USDT';
 
 interface RecognizedWallet {
   name: string;
   icon: string;
-  provider?: any; // For SOL
-  standardWallet?: StandardWallet; // For SUI
+  standardWallet: StandardWallet;
 }
 
 export default function DonateButton() {
@@ -27,80 +31,70 @@ export default function DonateButton() {
   const [amount, setAmount] = useState<string>('1');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Wallet State
   const [suiWallets, setSuiWallets] = useState<RecognizedWallet[]>([]);
   const [solWallets, setSolWallets] = useState<RecognizedWallet[]>([]);
 
+  // Unified wallet detection via wallet-standard.
+  // Every modern wallet (Phantom, Solflare, MetaMask, Backpack, etc.) registers here.
   useEffect(() => {
-    // 1. Listen for Sui Wallets
     const walletsAPI = getWallets();
-    const updateSuiWallets = () => {
-      const standardWallets = walletsAPI.get();
-      // Remove duplicates by name (case-insensitive) to prevent "Phantom" vs "phantom" duplicates
-      const uniqueMap = new Map();
-      standardWallets.forEach(item => {
-        const normalizedName = item.name.toLowerCase().trim();
-        // If multiple matches are found, prioritize ones with actual features
-        if (!uniqueMap.has(normalizedName) || (Object.keys(item.features || {}).length > Object.keys(uniqueMap.get(normalizedName).features || {}).length)) {
-          uniqueMap.set(normalizedName, item);
+
+    const updateWallets = () => {
+      const suiMap = new Map<string, StandardWallet>();
+      const solMap = new Map<string, StandardWallet>();
+
+      walletsAPI.get().forEach(item => {
+        const features = item.features as Record<string, unknown>;
+        const key = item.name.toLowerCase().trim();
+
+        if (
+          'sui:signAndExecuteTransaction' in features ||
+          'sui:signAndExecuteTransactionBlock' in features
+        ) {
+          if (!suiMap.has(key)) suiMap.set(key, item);
+        }
+
+        if ('solana:signAndSendTransaction' in features) {
+          if (!solMap.has(key)) solMap.set(key, item);
         }
       });
 
-      const uniqueWallets = Array.from(uniqueMap.values());
-      const mapped = uniqueWallets.map(w => ({
-        name: w.name,
-        icon: w.icon,
-        standardWallet: w
-      }));
-      setSuiWallets(mapped);
+      setSuiWallets(
+        Array.from(suiMap.values()).map(w => ({ name: w.name, icon: w.icon, standardWallet: w }))
+      );
+      setSolWallets(
+        Array.from(solMap.values()).map(w => ({ name: w.name, icon: w.icon, standardWallet: w }))
+      );
     };
 
-    updateSuiWallets();
-    const unsubscribeSui = walletsAPI.on('register', updateSuiWallets);
-
-    // 2. Simple detection for Solana Wallets
-    const updateSolWallets = () => {
-      const sol: RecognizedWallet[] = [];
-      const seenNames = new Set<string>();
-
-      const addSolWallet = (name: string, icon: string, provider: any) => {
-        const normalizedName = name.toLowerCase().trim();
-        if (!seenNames.has(normalizedName)) {
-          seenNames.add(normalizedName);
-          sol.push({ name, icon, provider });
-        }
-      };
-
-      if (typeof window !== 'undefined') {
-        if ((window as any).phantom?.solana) {
-          addSolWallet('Phantom', 'https://phantom.app/img/phantom-logo.svg', (window as any).phantom.solana);
-        }
-        if ((window as any).solflare) {
-          addSolWallet('Solflare', 'https://solflare.com/assets/logo.svg', (window as any).solflare);
-        }
-      }
-      setSolWallets(sol);
-    };
-
-    updateSolWallets();
-    // Re-check after a brief delay for injected scripts to load
-    const timeout = setTimeout(updateSolWallets, 1500);
-
-    return () => {
-      clearTimeout(timeout);
-      unsubscribeSui();
-    };
+    updateWallets();
+    const unsubscribe = walletsAPI.on('register', updateWallets);
+    return () => unsubscribe();
   }, []);
 
-  const handleDonateSOLWithWallet = async (wallet: RecognizedWallet, amountLamports: number) => {
+  const handleDonateSOL = async (wallet: RecognizedWallet, amountLamports: number) => {
     try {
-      if (!wallet.provider) return;
       setIsProcessing(true);
 
-      await wallet.provider.connect();
-      const senderPublicKey = new PublicKey(wallet.provider.publicKey.toString());
+      const features = wallet.standardWallet.features as any;
 
-      const connection = new Connection(clusterApiUrl('mainnet-beta'));
+      let accounts: any[] = [];
+      if (features['standard:connect']) {
+        const result = await features['standard:connect'].connect();
+        accounts = result.accounts;
+      } else {
+        accounts = wallet.standardWallet.accounts as any[];
+      }
+      if (!accounts || accounts.length === 0) {
+        toast.error(`No accounts found in ${wallet.name}.`);
+        setIsProcessing(false);
+        return;
+      }
+
+      const account = accounts[0];
+      const senderPublicKey = new PublicKey(account.address);
+      const connection = new Connection(clusterApiUrl(SOLANA_CLUSTER as any));
+
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: senderPublicKey,
@@ -108,18 +102,30 @@ export default function DonateButton() {
           lamports: amountLamports,
         })
       );
-
-      const { blockhash } = await connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = senderPublicKey;
 
       toast.info(`Please approve the transaction in ${wallet.name}.`);
-      const { signature } = await wallet.provider.signAndSendTransaction(transaction);
+
+      const serializedTx = transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+      const solanaFeature = features['solana:signAndSendTransaction'];
+      const outputs = await solanaFeature.signAndSendTransaction({
+        transaction: serializedTx,
+        account,
+        chain: SOLANA_CHAIN,
+      });
+      const signature: Uint8Array = Array.isArray(outputs)
+        ? outputs[0]?.signature
+        : (outputs as any)?.signature;
+      if (!signature) throw new Error('Wallet did not return a transaction signature');
+
+      const txId = bs58.encode(Buffer.from(signature));
 
       toast.promise(
-        connection.confirmTransaction(signature, 'confirmed'),
+        connection.confirmTransaction({ signature: txId, blockhash, lastValidBlockHeight }, 'confirmed'),
         {
-          loading: 'Confirming SOL Donation...',
+          loading: 'Confirming SOL donation...',
           success: `Thank you for your SOL donation via ${wallet.name}! 🎉`,
           error: 'Failed to confirm transaction.',
         }
@@ -127,44 +133,34 @@ export default function DonateButton() {
       setIsDonateOpen(false);
     } catch (error: any) {
       console.error(error);
-      toast.error(`SOL Donation failed: ${error.message || "Unknown error"}`);
+      toast.error(`SOL donation failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDonateSUIWithWallet = async (wallet: RecognizedWallet, amountMist: number) => {
+  const handleDonateSUI = async (wallet: RecognizedWallet, amountMist: number) => {
     try {
-      if (!wallet.standardWallet) return;
       setIsProcessing(true);
 
-      let accounts: any[] = [];
       const features = wallet.standardWallet.features as any;
 
-      // Request connect
-      if (typeof features['standard:connect'] !== 'undefined') {
+      let accounts: any[] = [];
+      if (features['standard:connect']) {
         const result = await features['standard:connect'].connect();
         accounts = result.accounts;
       } else {
-        toast.error(`${wallet.name} does not support standard connection.`);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Fallback if the standard doesn't return accounts but they are on the wallet object
-      if (!accounts || accounts.length === 0) {
         accounts = wallet.standardWallet.accounts as any[];
       }
-
       if (!accounts || accounts.length === 0) {
         toast.error(`No accounts found in ${wallet.name}.`);
         setIsProcessing(false);
         return;
       }
 
-      // Check for transaction execution capability
-      const signAndExecuteFeature = features['sui:signAndExecuteTransactionBlock'] || features['sui:signAndExecuteTransaction'];
-
+      const signAndExecuteFeature =
+        features['sui:signAndExecuteTransaction'] ||
+        features['sui:signAndExecuteTransactionBlock'];
       if (!signAndExecuteFeature) {
         toast.error(`${wallet.name} does not support transaction execution.`);
         setIsProcessing(false);
@@ -173,22 +169,23 @@ export default function DonateButton() {
 
       const txb = new TransactionBlock();
       const [coin] = txb.splitCoins(txb.gas, [txb.pure(amountMist)]);
-      txb.transferObjects([coin as any], DESTINATION_SUI!);
+      txb.transferObjects([coin as any], DESTINATION_SUI);
 
       toast.info(`Please approve the transaction in ${wallet.name}.`);
 
-      if (features['sui:signAndExecuteTransactionBlock']) {
-        await features['sui:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
-          transactionBlock: txb,
-          account: accounts[0],
-          chain: 'sui:mainnet'
-        });
-      } else if (features['sui:signAndExecuteTransaction']) {
-        // Fallback for newer standards implementing the modern namespace
+      const suiChain = `sui:${process.env.NEXT_PUBLIC_PAYMENT_KIT_NETWORK || 'mainnet'}`;
+
+      if (features['sui:signAndExecuteTransaction']) {
         await features['sui:signAndExecuteTransaction'].signAndExecuteTransaction({
           transaction: txb,
           account: accounts[0],
-          chain: 'sui:mainnet'
+          chain: suiChain,
+        });
+      } else {
+        await features['sui:signAndExecuteTransactionBlock'].signAndExecuteTransactionBlock({
+          transactionBlock: txb,
+          account: accounts[0],
+          chain: suiChain,
         });
       }
 
@@ -196,7 +193,7 @@ export default function DonateButton() {
       setIsDonateOpen(false);
     } catch (error: any) {
       console.error(error);
-      toast.error(`SUI Donation failed: ${error.message || "Unknown error"}`);
+      toast.error(`SUI donation failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -205,16 +202,17 @@ export default function DonateButton() {
   const processDonation = (wallet: RecognizedWallet) => {
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      toast.error("Please enter a valid amount.");
+      toast.error('Please enter a valid amount.');
       return;
     }
-
     if (selectedCrypto === 'SOL') {
-      handleDonateSOLWithWallet(wallet, numericAmount * 1_000_000_000);
+      handleDonateSOL(wallet, Math.round(numericAmount * 1_000_000_000));
     } else if (selectedCrypto === 'SUI') {
-      handleDonateSUIWithWallet(wallet, numericAmount * 1_000_000_000);
+      handleDonateSUI(wallet, Math.round(numericAmount * 1_000_000_000));
     }
   };
+
+  const activeWallets = selectedCrypto === 'SUI' ? suiWallets : selectedCrypto === 'SOL' ? solWallets : [];
 
   return (
     <>
@@ -268,10 +266,11 @@ export default function DonateButton() {
                     <button
                       key={crypto}
                       onClick={() => setSelectedCrypto(crypto)}
-                      className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${selectedCrypto === crypto
-                        ? 'bg-white text-[#4c32ff] shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
-                        }`}
+                      className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                        selectedCrypto === crypto
+                          ? 'bg-white text-[#4c32ff] shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
                     >
                       {crypto}
                     </button>
@@ -299,7 +298,9 @@ export default function DonateButton() {
 
                 {/* Wallet Selection & Donation */}
                 <div className="space-y-2 pt-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Available Wallets</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                    Available Wallets
+                  </label>
 
                   {isProcessing ? (
                     <div className="w-full relative flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#4c32ff]/20 bg-[#4c32ff]/5 text-[#4c32ff] rounded-xl font-bold tracking-wide">
@@ -307,50 +308,38 @@ export default function DonateButton() {
                         <Wallet className="w-5 h-5 animate-bounce" /> Awaiting Wallet...
                       </span>
                     </div>
-                  ) : selectedCrypto === 'SUI' ? (
-                    suiWallets.length > 0 ? (
-                      suiWallets.map(wallet => (
-                        <button
-                          key={wallet.name}
-                          onClick={() => processDonation(wallet)}
-                          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#4c32ff] text-white hover:bg-[#4c32ff]/90 rounded-xl font-medium transition-all shadow-sm"
-                        >
-                          {wallet.icon && <img src={wallet.icon} alt={wallet.name} className="w-6 h-6 rounded" />}
-                          {!wallet.icon && <Wallet className="w-5 h-5" />}
-                          <span>Donate with {wallet.name}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl text-center gap-2 border border-gray-100">
-                        <AlertCircle className="w-6 h-6 text-gray-400" />
-                        <p className="text-sm text-gray-600 font-medium">No Sui wallets found</p>
-                        <a href="https://suiwallet.com/" target="_blank" rel="noreferrer" className="text-xs text-[#4c32ff] hover:underline">Download Sui Wallet</a>
-                      </div>
-                    )
-                  ) : selectedCrypto === 'SOL' ? (
-                    solWallets.length > 0 ? (
-                      solWallets.map(wallet => (
-                        <button
-                          key={wallet.name}
-                          onClick={() => processDonation(wallet)}
-                          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#4c32ff] text-white hover:bg-[#4c32ff]/90 rounded-xl font-medium transition-all shadow-sm"
-                        >
-                          {wallet.icon && <img src={wallet.icon} alt={wallet.name} className="w-6 h-6 rounded" />}
-                          {!wallet.icon && <Wallet className="w-5 h-5" />}
-                          <span>Donate with {wallet.name}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl text-center gap-2 border border-gray-100">
-                        <AlertCircle className="w-6 h-6 text-gray-400" />
-                        <p className="text-sm text-gray-600 font-medium">No Solana wallets found</p>
-                        <a href="https://phantom.app/" target="_blank" rel="noreferrer" className="text-xs text-[#4c32ff] hover:underline">Download Phantom</a>
-                      </div>
-                    )
-                  ) : (
+                  ) : selectedCrypto === 'USDT' ? (
                     <button disabled className="w-full px-4 py-3 bg-gray-100 text-gray-400 rounded-xl font-medium cursor-not-allowed">
                       USDT integration coming soon
                     </button>
+                  ) : activeWallets.length > 0 ? (
+                    activeWallets.map(wallet => (
+                      <button
+                        key={wallet.name}
+                        onClick={() => processDonation(wallet)}
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#4c32ff] text-white hover:bg-[#4c32ff]/90 rounded-xl font-medium transition-all shadow-sm"
+                      >
+                        {wallet.icon
+                          ? <img src={wallet.icon} alt={wallet.name} className="w-6 h-6 rounded" />
+                          : <Wallet className="w-5 h-5" />}
+                        <span>Donate with {wallet.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl text-center gap-2 border border-gray-100">
+                      <AlertCircle className="w-6 h-6 text-gray-400" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        No {selectedCrypto === 'SUI' ? 'Sui' : 'Solana'} wallets detected
+                      </p>
+                      <a
+                        href={selectedCrypto === 'SUI' ? 'https://suiwallet.com/' : 'https://phantom.app/'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-[#4c32ff] hover:underline"
+                      >
+                        {selectedCrypto === 'SUI' ? 'Download Sui Wallet' : 'Download Phantom'}
+                      </a>
+                    </div>
                   )}
                 </div>
 

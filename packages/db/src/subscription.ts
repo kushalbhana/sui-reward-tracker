@@ -4,10 +4,22 @@ export interface ISubscription {
   userId: mongoose.Types.ObjectId;
   plan: "pro";
   status: "active" | "expired" | "pending";
-  txHash: string;
+  /**
+   * @deprecated Use `txDigest` for SUI PaymentKit payments.
+   * Kept for backward compatibility (SOL payments still use txHash).
+   */
+  txHash?: string;
+  /** Canonical transaction digest (SUI PaymentKit payments) */
+  txDigest?: string;
   walletAddress: string;
   paidAmount: number;
   paidCurrency: "SUI" | "SOL" | "USDT";
+  /**
+   * UUID nonce generated client-side before building the PaymentKit
+   * transaction. Stored with a unique index to prevent replay attacks.
+   * Only set for SUI PaymentKit payments.
+   */
+  paymentNonce?: string;
   activatedAt: Date;
   expiresAt: Date;
 }
@@ -32,7 +44,12 @@ const SubscriptionSchema = new mongoose.Schema(
       default: "active",
       required: true,
     },
-    txHash: { type: String, required: true, unique: true },
+    // Legacy field — used for SOL payments and backward compat
+    txHash: { type: String, unique: true, sparse: true },
+    // New canonical field — used for SUI PaymentKit payments
+    txDigest: { type: String, sparse: true },
+    // Unique nonce for PaymentKit payments — prevents replay attacks at the DB level
+    paymentNonce: { type: String, unique: true, sparse: true },
     walletAddress: { type: String, required: true },
     paidAmount: { type: Number, required: true },
     paidCurrency: {
